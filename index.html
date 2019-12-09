@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hello World</title>
+    <script src="https://unpkg.com/react@16/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+
+    <!-- Don't use this in production: -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      * {
+        font-family: monospace;
+      }
+      body {
+        width: 30%;
+        margin: 10vh auto;
+        display: flex;
+        height: 80vh;
+        align-items: center;
+      }
+      #root {
+        width: 100%;
+      }
+      .newButton {
+        display: inline-block;
+        transform: rotate(45deg);
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: -42px;
+        margin-right: 20px;
+        background: #328;
+        cursor: pointer;
+      }
+      .newButtonText {
+        transform: rotate(-45deg);
+        font-family: monospace;
+        font-size: 24px;
+        color: white;
+      }
+      .menu {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        /* border-top: 2px solid gray; */
+        margin-top: 40px;
+        padding: 20px 5px;
+        margin-right: -75px;
+      }
+      .app {
+        margin-top: 50px;
+      }
+      .todoList {
+        margin-top: -20px;
+      }
+      .todo-item-container {
+        border-bottom: 2px solid black;
+        padding: 20px 5px 15px;
+        font-size: 14px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+      }
+      .new-todo-item {
+        border-bottom: 2px solid darkgray;
+        padding: 20px 5px 15px;
+        font-size: 14px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+      }
+      .new-todo-text {
+        outline: none;
+        margin-left: 38px;
+        cursor: text;
+        width: 100%;
+        margin-top: -15px;
+        margin-bottom: -10px;
+        padding-top: 15px;
+        padding-bottom: 10px;
+        color: #666;
+      }
+      .new-todo-text:empty::after {
+        color: darkgray;
+        content: "New task...";
+      }
+      .todo-item {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+      }
+      .todoList > .todo-item-container:first-child {
+        border-top: 2px solid black;
+      }
+      .todo-bullet-container {
+        width: 30px;
+        display: flex;
+        justify-content: center;
+      }
+      .todo-bullet {
+        cursor: pointer;
+        border: 2px solid black;
+        transform: rotate(45deg);
+        width: 10px;
+        height: 10px;
+        border-radius: 10%;
+      }
+      .todo-item:hover .todo-bullet {
+        background: black;
+        transform: rotate(180deg);
+        animation: spin 1s linear;
+      }
+      .todo-text {
+        text-decoration: none;
+      }
+      .todo-item:hover .todo-text {
+        text-decoration: line-through;
+        animation: crossout 0.4s linear;
+      }
+      .todo-controls {
+        flex: 1;
+        display: flex;
+        justify-content: flex-end;
+      }
+      .todo-add-subitem {
+        margin-right: 15px;
+        cursor: pointer;
+      }
+      .todo-move-handle {
+        cursor: all-scroll;
+      }
+      @keyframes spin {
+        0% {
+          transform:rotate(45deg);
+          background: white;
+        }
+        40% {
+          transform:rotate(45deg);
+          background: white;
+        }
+        100% {
+          -webkit-transform: rotate(180deg);
+          transform:rotate(180deg);
+          background: black;
+          text-decoration: line-through;
+        }
+      }
+      @keyframes crossout {
+        0% {
+          text-decoration: none;
+        }
+        100% {
+          text-decoration: line-through;
+        }
+      }
+      .subList {
+        padding-left: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel">
+      const TodoItemComponent = (props) => {
+        const item = props.task
+        console.log(item)
+        return (
+          <div>
+            <div className="todo-item-container">
+              <div className="todo-item">
+                <div className="todo-bullet-container">
+                  <div className="todo-bullet"></div>
+                </div>
+                <div className="todo-text">&nbsp;{item.text}&nbsp;</div>
+              </div>
+              <div className="todo-controls">
+                <div className="todo-add-subitem">+</div>
+                <div className="todo-move-handle">⋮</div>
+              </div>
+            </div>
+            <div className="subList">
+              {item.children.map((task) => {
+                return <TodoItemComponent task={task} key={task.id}/>
+              })}
+            </div>
+          </div>
+        )
+      }
+      const Menu = () => {
+        return (
+          <div className="menu">
+            <div className="newButton">
+              <div className="newButtonText">#</div>
+            </div>
+          </div>
+        )
+      }
+      class App extends React.Component {
+        render () {
+          const data = [
+            {
+              id: 0,
+              text: "Buy Milk",
+              children: [
+                {
+                  id: 5,
+                  text: "Find the dairy aisle",
+                  children: [],
+                },
+                {
+                  id: 6,
+                  text: "Find a whole milk that's also organic",
+                  children: [],
+                },
+                {
+                  id: 7,
+                  text: "Put it in the cart",
+                  children: [],
+                },
+              ],
+            },
+            {
+              id: 1,
+              text: "Buy Orange Juice",
+              children: [],
+            },
+            {
+              id: 2,
+              text: "Buy Yogurt",
+              children: [],
+            },
+            {
+              id: 3,
+              text: "Buy Bread",
+              children: [],
+            },
+            {
+              id: 4,
+              text: "Buy Anchovies",
+              children: [],
+            },
+          ]
+          return (
+            <div className="app">
+              <div className="todoList">
+                {
+                  data.map((task) => {
+                    return (
+                      <TodoItemComponent task={task} key={task.id} />
+                    )
+                  })
+                }
+                <div className="new-todo-item">
+                  <span className="new-todo-text" contentEditable="true"></span>
+                </div>
+              </div>
+              { false ? <Menu /> : null }
+            </div>
+          )
+        }
+      }
+      ReactDOM.render(
+        <App />,
+        document.getElementById('root')
+      );
+    </script>
+    <!--
+      Note: this page is a great way to try React but it's not suitable for production.
+      It slowly compiles JSX with Babel in the browser and uses a large development build of React.
+      Read this section for a production-ready setup with JSX:
+      https://reactjs.org/docs/add-react-to-a-website.html#add-jsx-to-a-project
+      In a larger project, you can use an integrated toolchain that includes JSX instead:
+      https://reactjs.org/docs/create-a-new-react-app.html
+      You can also use React without JSX, in which case you can remove Babel:
+      https://reactjs.org/docs/react-without-jsx.html
+    -->
+  </body>
+</html>
