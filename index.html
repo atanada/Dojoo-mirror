@@ -17,7 +17,6 @@
         margin: 10vh auto;
         display: flex;
         height: 80vh;
-        align-items: center;
       }
       #root {
         width: 100%;
@@ -164,30 +163,36 @@
   <body>
     <div id="root"></div>
     <script type="text/babel">
-      const TodoItemComponent = (props) => {
-        const item = props.task
-        console.log(item)
-        return (
-          <div>
-            <div className="todo-item-container">
-              <div className="todo-item">
-                <div className="todo-bullet-container">
-                  <div className="todo-bullet"></div>
+      const TaskManagementContext = React.createContext(null)
+      class TodoItemComponent extends React.Component {
+        static contextType = TaskManagementContext
+        constructor (props) {
+          super(props)
+        }
+        render () {
+          const item = this.props.task
+          return (
+            <div>
+              <div className="todo-item-container">
+                <div className="todo-item" onClick={ () => this.context.delete(item.id) }>
+                  <div className="todo-bullet-container">
+                    <div className="todo-bullet"></div>
+                  </div>
+                  <div className="todo-text">&nbsp;{item.text}&nbsp;</div>
                 </div>
-                <div className="todo-text">&nbsp;{item.text}&nbsp;</div>
+                <div className="todo-controls">
+                  <div className="todo-add-subitem">+</div>
+                  <div className="todo-move-handle">⋮</div>
+                </div>
               </div>
-              <div className="todo-controls">
-                <div className="todo-add-subitem">+</div>
-                <div className="todo-move-handle">⋮</div>
+              <div className="subList">
+                {item.children.map((task) => {
+                  return <TodoItemComponent task={task} key={task.id}/>
+                })}
               </div>
             </div>
-            <div className="subList">
-              {item.children.map((task) => {
-                return <TodoItemComponent task={task} key={task.id}/>
-              })}
-            </div>
-          </div>
-        )
+          )
+        }
       }
       const Menu = () => {
         return (
@@ -198,67 +203,116 @@
           </div>
         )
       }
+
       class App extends React.Component {
-        render () {
-          const data = [
-            {
-              id: 0,
-              text: "Buy Milk",
-              children: [
-                {
-                  id: 5,
-                  text: "Find the dairy aisle",
-                  children: [],
-                },
-                {
-                  id: 6,
-                  text: "Find a whole milk that's also organic",
-                  children: [],
-                },
-                {
-                  id: 7,
-                  text: "Put it in the cart",
-                  children: [],
-                },
-              ],
-            },
-            {
-              id: 1,
-              text: "Buy Orange Juice",
-              children: [],
-            },
-            {
-              id: 2,
-              text: "Buy Yogurt",
-              children: [],
-            },
-            {
-              id: 3,
-              text: "Buy Bread",
-              children: [],
-            },
-            {
-              id: 4,
-              text: "Buy Anchovies",
-              children: [],
-            },
-          ]
-          return (
-            <div className="app">
-              <div className="todoList">
-                {
-                  data.map((task) => {
-                    return (
-                      <TodoItemComponent task={task} key={task.id} />
+        constructor (props) {
+          super(props)
+          this.state = {
+            tasks: [
+              {
+                id: 0,
+                text: "Buy Milk",
+                children: [
+                  {
+                    id: 5,
+                    text: "Find the dairy aisle",
+                    children: [],
+                  },
+                  {
+                    id: 6,
+                    text: "Find a whole milk that's also organic",
+                    children: [],
+                  },
+                  {
+                    id: 7,
+                    text: "Put it in the cart",
+                    children: [],
+                  },
+                ],
+              },
+              {
+                id: 1,
+                text: "Buy Orange Juice",
+                children: [],
+              },
+              {
+                id: 2,
+                text: "Buy Yogurt",
+                children: [],
+              },
+              {
+                id: 3,
+                text: "Buy Bread",
+                children: [],
+              },
+              {
+                id: 4,
+                text: "Buy Anchovies",
+                children: [],
+              },
+            ]
+          }
+        }
+        remove = (id) => {
+          const filterFromList = (tasks, id) => {
+            let found = false
+            const filteredTasks = []
+            for (const task of tasks) {
+              if(found) { // if found, just copy things over, no recursion
+                filteredTasks.push(task)
+              } else if(task.id === id) { // if found, mark as found, no add
+                found = true
+              } else { // check children
+                const result = filterFromList(task.children, id)
+                found = result.found
+                if (found) {
+                  filteredTasks.push(
+                    Object.assign(
+                      {},
+                      task,
+                      { children: result.children }
                     )
-                  })
+                  )
+                } else {
+                  filteredTasks.push(task)
                 }
-                <div className="new-todo-item">
-                  <span className="new-todo-text" contentEditable="true"></span>
+              }
+            }
+            return {
+              found,
+              children: filteredTasks,
+            }
+          }
+          this.setState((state) => {
+            const filterResults = filterFromList(state.tasks, id)
+            if (filterResults.found) {
+              return { tasks: filterResults.children }
+            } else {
+              return state
+            }
+          })
+        }
+        render () {
+          return (
+            <TaskManagementContext.Provider value={{
+              delete: this.remove,
+            }}>
+              <div className="app">
+                <div className="todoList">
+                  {
+                    this.state.tasks.map((task) => {
+                      return (
+                        <TodoItemComponent task={task} key={task.id} />
+                      )
+                    })
+                  }
+                  <div className="new-todo-item">
+                    <span className="new-todo-text" contentEditable="true"></span>
+                  </div>
                 </div>
+                { false ? <Menu /> : null }
               </div>
-              { false ? <Menu /> : null }
-            </div>
+            </TaskManagementContext.Provider>
           )
         }
       }
