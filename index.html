@@ -178,7 +178,7 @@
             event.currentTarget.innerText = ''
             event.preventDefault()
           } else if (event.key === 'Escape') {
-            this.context.setActiveTask()
+            this.context.resetActiveTask()
           }
         }
         render () {
@@ -186,7 +186,7 @@
           return (
             <div>
               <div className="todo-item-container">
-                <div className="todo-item" onClick={() => this.context.delete(this.task.id)}>
+                <div className="todo-item" onClick={() => this.context.removeTask(this.task.id)}>
                   <div className="todo-bullet-container">
                     <div className="todo-bullet"></div>
                   </div>
@@ -237,6 +237,7 @@
         constructor (props) {
           super(props)
           this.state = {
+            activeParent: 'root',
             tasks: {
               'root': {
                 children: ['x0', 'x4', 'x5', 'x6', 'x7'],
@@ -292,7 +293,7 @@
             },
           }
         }
-        remove = (id) => {
+        removeTask = (id) => {
           this.setState((state) => {
             // remove from the parent's children
             // remove from the tasks
@@ -317,6 +318,9 @@
          */
         setActiveTask = (id) => {
           this.setState({ activeParent: id })
+        }
+        resetActiveTask = () => {
+          this.setActiveTask('root')
         }
         getActiveTask = () => {
           return this.state.activeParent
@@ -354,13 +358,14 @@
         render () {
           return (
             <TaskManagementContext.Provider value={{
-              delete: this.remove,
-              setActiveTask: this.setActiveTask,
-              getActiveTask: this.getActiveTask,
               createTask: this.createTask,
               getTask: this.getTask,
+              getActiveTask: this.getActiveTask,
+              removeTask: this.removeTask,
+              resetActiveTask: this.resetActiveTask,
+              setActiveTask: this.setActiveTask,
             }}>
-              <div className="app" onKeyPress={this.handleKeyPress}>
+              <div className="app">
                 <div className="todoList">
                   {
                     this.state.tasks['root'].children.map((taskId) => {
