@@ -174,14 +174,17 @@
           return (
             <div>
               <div className="todo-item-container">
-                <div className="todo-item" onClick={ () => this.context.delete(item.id) }>
+                <div className="todo-item" onClick={() => this.context.delete(item.id)}>
                   <div className="todo-bullet-container">
                     <div className="todo-bullet"></div>
                   </div>
                   <div className="todo-text">&nbsp;{item.text}&nbsp;</div>
                 </div>
                 <div className="todo-controls">
-                  <div className="todo-add-subitem">+</div>
+                  <div className="todo-add-subitem"
+                      onClick={() => this.context.setActiveTask(item.id)}>
+                    +
+                  </div>
                   <div className="todo-move-handle">⋮</div>
                 </div>
               </div>
@@ -189,6 +192,19 @@
                 {item.children.map((task) => {
                   return <TodoItemComponent task={task} key={task.id}/>
                 })}
+
+                {
+                  item.id === this.context.getActiveTask()
+                    ? (
+                      <div className="new-todo-item">
+                        <span className="new-todo-text"
+                            contentEditable="true"
+                            autoFocus>
+                        </span>
+                      </div>
+                    )
+                    : null
+                }
               </div>
             </div>
           )
@@ -292,10 +308,21 @@
             }
           })
         }
+        /**
+         * Refers to the parent
+         */
+        setActiveTask = (id) => {
+          this.setState({ activeParent: id })
+        }
+        getActiveTask = () => {
+          return this.state.activeParent
+        }
         render () {
           return (
             <TaskManagementContext.Provider value={{
               delete: this.remove,
+              setActiveTask: this.setActiveTask,
+              getActiveTask: this.getActiveTask,
             }}>
               <div className="app">
                 <div className="todoList">
@@ -306,9 +333,6 @@
                       )
                     })
                   }
-                  <div className="new-todo-item">
-                    <span className="new-todo-text" contentEditable="true"></span>
-                  </div>
                 </div>
                 { false ? <Menu /> : null }
               </div>
