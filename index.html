@@ -172,7 +172,7 @@
         }
         handleKeyPress = (event) => {
           if (event.key === 'Enter') {
-            this.context.createTask(this.props.task.id, event.currentTarget.innerText)
+            this.context.createTask(this.props.task, event.currentTarget.innerText)
             event.currentTarget.innerText = ''
             event.preventDefault()
           } else if (event.key === 'Escape') {
@@ -180,31 +180,31 @@
           }
         }
         render () {
-          const item = this.props.task
+          this.task = this.context.getTask(this.props.task)
           return (
             <div>
               <div className="todo-item-container">
-                <div className="todo-item" onClick={() => this.context.delete(item.id)}>
+                <div className="todo-item" onClick={() => this.context.delete(this.task.id)}>
                   <div className="todo-bullet-container">
                     <div className="todo-bullet"></div>
                   </div>
-                  <div className="todo-text">&nbsp;{item.text}&nbsp;</div>
+                  <div className="todo-text">&nbsp;{this.task.text}&nbsp;</div>
                 </div>
                 <div className="todo-controls">
                   <div className="todo-add-subitem"
-                      onClick={() => this.context.setActiveTask(item.id)}>
+                      onClick={() => this.context.setActiveTask(this.task.id)}>
                     +
                   </div>
                   <div className="todo-move-handle">⋮</div>
                 </div>
               </div>
               <div className="subList">
-                {item.children.map((task) => {
-                  return <TodoItemComponent task={task} key={task.id}/>
+                {this.task.children.map((taskId) => {
+                  return <TodoItemComponent task={taskId} key={taskId}/>
                 })}
 
                 {
-                  item.id === this.context.getActiveTask()
+                  this.task.id === this.context.getActiveTask()
                     ? (
                       <div className="new-todo-item">
                         <span className="new-todo-text"
@@ -235,94 +235,79 @@
         constructor (props) {
           super(props)
           this.state = {
-            tasks: [
-              {
-                id: 0,
-                text: "Buy Milk",
-                children: [
-                  {
-                    id: 5,
-                    text: "Find the dairy aisle",
-                    children: [],
-                  },
-                  {
-                    id: 6,
-                    text: "Find a whole milk that's also organic",
-                    children: [],
-                  },
-                  {
-                    id: 7,
-                    text: "Put it in the cart",
-                    children: [],
-                  },
-                ],
+            tasks: {
+              'root': {
+                children: ['x0', 'x4', 'x5', 'x6', 'x7'],
               },
-              {
-                id: 1,
+              'x0': {
+                id: 'x0',
+                text: "Buy Milk",
+                children: ['x1', 'x2', 'x3'],
+                parent: 'root',
+              },
+              'x1': {
+                id: 'x1',
+                text: "Find the dairy aisle",
+                children: [],
+                parent: 'x0',
+              },
+              'x2': {
+                id: 'x2',
+                text: "Find a whole milk that's also organic",
+                children: [],
+                parent: 'x0',
+              },
+              'x3': {
+                id: 'x3',
+                text: "Put it in the cart",
+                children: [],
+                parent: 'x0',
+              },
+              'x4': {
+                id: 'x4',
                 text: "Buy Orange Juice",
                 children: [],
+                parent: 'root',
               },
-              {
-                id: 2,
+              'x5': {
+                id: 'x5',
                 text: "Buy Yogurt",
                 children: [],
+                parent: 'root',
               },
-              {
-                id: 3,
+              'x6': {
+                id: 'x6',
                 text: "Buy Bread",
                 children: [],
+                parent: 'root',
               },
-              {
-                id: 4,
+              'x7': {
+                id: 'x7',
                 text: "Buy Anchovies",
                 children: [],
+                parent: 'root',
               },
-            ]
-          }
-        }
-        handleKeyPress = (event) => {
-          console.log(event.key)
-          if (event.key === 'Esc') {
-
+            },
           }
         }
         remove = (id) => {
-          const filterFromList = (tasks, id) => {
-            let found = false
-            const filteredTasks = []
-            for (const task of tasks) {
-              if(found) { // if found, just copy things over, no recursion
-                filteredTasks.push(task)
-              } else if(task.id === id) { // if found, mark as found, no add
-                found = true
-              } else { // check children
-                const result = filterFromList(task.children, id)
-                found = result.found
-                if (found) {
-                  filteredTasks.push(
-                    Object.assign(
-                      {},
-                      task,
-                      { children: result.children }
-                    )
-                  )
-                } else {
-                  filteredTasks.push(task)
-                }
-              }
-            }
-            return {
-              found,
-              children: filteredTasks,
-            }
-          }
           this.setState((state) => {
-            const filterResults = filterFromList(state.tasks, id)
-            if (filterResults.found) {
-              return { tasks: filterResults.children }
-            } else {
-              return state
-            }
+            // remove from the parent's children
+            // remove from the tasks
+            const newTasks = Object.assign({}, state.tasks)
+            delete newTasks[id]
+            newTasks[state.tasks[id].parent] = Object.assign(
+              {},
+              newTasks[state.tasks[id].parent],
+              {
+                children: newTasks[state.tasks[id].parent].children.filter(
+                  childId => {
+                    return childId !== id
+                  }
+                )
+              }
+            )
+            return { tasks: newTasks }
           })
         }
         /**
@@ -335,58 +320,34 @@
           return this.state.activeParent
         }
         createTask = (parentId, text) => {
-          const addTask = (tasks, parentId) => {
-            let found = false
-            const newChildren = []
-            for (const task of tasks) {
-              if(found) { // if found, just copy things over, no recursion
-                newChildren.push(task)
-              } else if(task.id === parentId) { // if found, mark as found, no add
-                newChildren.push(
-                  Object.assign(
-                    {},
-                    task,
-                    {
-                      children: task.children.concat({
-                        id: counter++,
-                        text,
-                        children: [],
-                      })
-                    }
-                  )
-                )
-                found = true
-              } else { // check children
-                const result = addTask(task.children, parentId)
-                found = result.found
-                if (found) {
-                  newChildren.push(
-                    Object.assign(
-                      {},
-                      task,
-                      { children: result.children }
-                    )
-                  )
-                } else {
-                  newChildren.push(task)
-                }
-              }
-            }
-            return {
-              found,
-              children: newChildren,
-            }
+          // add to tasks
+          // add to parent's children
+          const newTask = {
+            id: 'x' + counter++,
+            children: [],
+            text,
+            parent: parentId,
           }
           this.setState((state) => {
-            const filterResults = addTask(state.tasks, parentId)
-            if (filterResults.found) {
-              return {
-                tasks: filterResults.children,
-              }
-            } else {
-              return state
+            const parentTask = state.tasks[parentId]
+            return {
+              tasks: Object.assign(
+                {},
+                state.tasks,
+                {
+                  [newTask.id]: newTask,
+                  [parentId]: Object.assign(
+                    {},
+                    parentTask,
+                    { children: parentTask.children.concat(newTask.id) }
+                  ),
+                },
+              )
             }
           })
+        }
+        getTask = (id) => {
+          return this.state.tasks[id]
         }
         render () {
           return (
@@ -395,13 +356,14 @@
               setActiveTask: this.setActiveTask,
               getActiveTask: this.getActiveTask,
               createTask: this.createTask,
+              getTask: this.getTask,
             }}>
               <div className="app" onKeyPress={this.handleKeyPress}>
                 <div className="todoList">
                   {
-                    this.state.tasks.map((task) => {
+                    this.state.tasks['root'].children.map((taskId) => {
                       return (
-                        <TodoItemComponent task={task} key={task.id} />
+                        <TodoItemComponent task={taskId} key={taskId} />
                       )
                     })
                   }
