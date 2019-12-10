@@ -163,11 +163,21 @@
   <body>
     <div id="root"></div>
     <script type="text/babel">
+      let counter = 8
       const TaskManagementContext = React.createContext(null)
       class TodoItemComponent extends React.Component {
         static contextType = TaskManagementContext
         constructor (props) {
           super(props)
+        }
+        handleKeyPress = (event) => {
+          if (event.key === 'Enter') {
+            this.context.createTask(this.props.task.id, event.currentTarget.innerText)
+            event.currentTarget.innerText = ''
+            event.preventDefault()
+          } else if (event.key === 'Escape') {
+            this.context.setActiveTask()
+          }
         }
         render () {
           const item = this.props.task
@@ -199,7 +209,8 @@
                       <div className="new-todo-item">
                         <span className="new-todo-text"
                             contentEditable="true"
-                            autoFocus>
+                            autoFocus
+                            onKeyDown={this.handleKeyPress}>
                         </span>
                       </div>
                     )
@@ -269,6 +280,12 @@
             ]
           }
         }
+        handleKeyPress = (event) => {
+          console.log(event.key)
+          if (event.key === 'Esc') {
+
+          }
+        }
         remove = (id) => {
           const filterFromList = (tasks, id) => {
             let found = false
@@ -317,14 +334,69 @@
         getActiveTask = () => {
           return this.state.activeParent
         }
+        createTask = (parentId, text) => {
+          const addTask = (tasks, parentId) => {
+            let found = false
+            const newChildren = []
+            for (const task of tasks) {
+              if(found) { // if found, just copy things over, no recursion
+                newChildren.push(task)
+              } else if(task.id === parentId) { // if found, mark as found, no add
+                newChildren.push(
+                  Object.assign(
+                    {},
+                    task,
+                    {
+                      children: task.children.concat({
+                        id: counter++,
+                        text,
+                        children: [],
+                      })
+                    }
+                  )
+                )
+                found = true
+              } else { // check children
+                const result = addTask(task.children, parentId)
+                found = result.found
+                if (found) {
+                  newChildren.push(
+                    Object.assign(
+                      {},
+                      task,
+                      { children: result.children }
+                    )
+                  )
+                } else {
+                  newChildren.push(task)
+                }
+              }
+            }
+            return {
+              found,
+              children: newChildren,
+            }
+          }
+          this.setState((state) => {
+            const filterResults = addTask(state.tasks, parentId)
+            if (filterResults.found) {
+              return {
+                tasks: filterResults.children,
+              }
+            } else {
+              return state
+            }
+          })
+        }
         render () {
           return (
             <TaskManagementContext.Provider value={{
               delete: this.remove,
               setActiveTask: this.setActiveTask,
               getActiveTask: this.getActiveTask,
+              createTask: this.createTask,
             }}>
-              <div className="app">
+              <div className="app" onKeyPress={this.handleKeyPress}>
                 <div className="todoList">
                   {
                     this.state.tasks.map((task) => {
