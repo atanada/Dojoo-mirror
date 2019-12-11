@@ -158,19 +158,33 @@
     <script type="text/babel">
       let counter = 8
       const TaskManagementContext = React.createContext(null)
-      class TodoItemComponent extends React.Component {
+      class NewTodoInput extends React.Component {
         static contextType = TaskManagementContext
-        constructor (props) {
-          super(props)
-        }
         handleKeyPress = (event) => {
           if (event.key === 'Enter') {
-            this.context.createTask(this.props.task, event.currentTarget.innerText)
+            this.context.createTask(event.currentTarget.innerText)
             event.currentTarget.innerText = ''
             event.preventDefault()
           } else if (event.key === 'Escape') {
             this.context.resetActiveTask()
           }
+        }
+        render = () => {
+          return (
+            <div className="new-todo-item">
+              <span className="new-todo-text"
+                  contentEditable="true"
+                  autoFocus
+                  onKeyDown={this.handleKeyPress}>
+              </span>
+            </div>
+          )
+        }
+      }
+      class TodoItemComponent extends React.Component {
+        static contextType = TaskManagementContext
+        constructor (props) {
+          super(props)
         }
         render () {
           this.task = this.context.getTask(this.props.task)
@@ -199,13 +213,7 @@
                 {
                   this.task.id === this.context.getActiveTask()
                     ? (
-                      <div className="new-todo-item">
-                        <span className="new-todo-text"
-                            contentEditable="true"
-                            autoFocus
-                            onKeyDown={this.handleKeyPress}>
-                        </span>
-                      </div>
+                      <NewTodoInput />
                     )
                     : null
                 }
@@ -219,13 +227,6 @@
         constructor (props) {
           super(props)
         }
-        handleKeyPress = (event) => {
-          if (event.key === 'Enter') {
-            this.context.createTask('root', event.currentTarget.innerText)
-            event.currentTarget.innerText = ''
-            event.preventDefault()
-          }
-        }
         render () {
           return (
             <div className="todoList">
@@ -236,13 +237,7 @@
               {
                 this.context.getActiveTask() === 'root'
                   ? (
-                    <div className="new-todo-item">
-                      <span className="new-todo-text"
-                          contentEditable="true"
-                          autoFocus
-                          onKeyDown={this.handleKeyPress}>
-                      </span>
-                    </div>
+                    <NewTodoInput />
                   )
                   : null
               }
@@ -343,9 +338,10 @@
         getActiveTask = () => {
           return this.state.activeParent
         }
-        createTask = (parentId, text) => {
+        createTask = (text) => {
           // add to tasks
           // add to parent's children
+          const parentId = this.state.activeParent
           const newTask = {
             id: 'x' + counter++,
             children: [],
