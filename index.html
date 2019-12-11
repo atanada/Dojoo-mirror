@@ -40,15 +40,6 @@
         font-size: 24px;
         color: white;
       }
-      .menu {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        /* border-top: 2px solid gray; */
-        margin-top: 40px;
-        padding: 20px 5px;
-        margin-right: -75px;
-      }
       .app {
         margin-top: 50px;
       }
@@ -223,14 +214,41 @@
           )
         }
       }
-      const Menu = () => {
-        return (
-          <div className="menu">
-            <div className="newButton">
-              <div className="newButtonText">#</div>
+      class TopLevelList extends React.Component {
+        static contextType = TaskManagementContext
+        constructor (props) {
+          super(props)
+        }
+        handleKeyPress = (event) => {
+          if (event.key === 'Enter') {
+            this.context.createTask('root', event.currentTarget.innerText)
+            event.currentTarget.innerText = ''
+            event.preventDefault()
+          }
+        }
+        render () {
+          return (
+            <div className="todoList">
+              {this.context.getTask('root').children.map((taskId) => {
+                return <TodoItemComponent task={taskId} key={taskId}/>
+              })}
+
+              {
+                this.context.getActiveTask() === 'root'
+                  ? (
+                    <div className="new-todo-item">
+                      <span className="new-todo-text"
+                          contentEditable="true"
+                          autoFocus
+                          onKeyDown={this.handleKeyPress}>
+                      </span>
+                    </div>
+                  )
+                  : null
+              }
             </div>
-          </div>
-        )
+          )
+        }
       }
 
       class App extends React.Component {
@@ -366,16 +384,7 @@
               setActiveTask: this.setActiveTask,
             }}>
               <div className="app">
-                <div className="todoList">
-                  {
-                    this.state.tasks['root'].children.map((taskId) => {
-                      return (
-                        <TodoItemComponent task={taskId} key={taskId} />
-                      )
-                    })
-                  }
-                </div>
-                { false ? <Menu /> : null }
+                <TopLevelList />
               </div>
             </TaskManagementContext.Provider>
           )
