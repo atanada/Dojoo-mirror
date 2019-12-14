@@ -156,7 +156,79 @@
   <body>
     <div id="root"></div>
     <script type="text/babel">
-      let counter = 8
+      const saveState = (state) => {
+        localStorage.setItem('counter', counter)
+        localStorage.setItem('tasks', JSON.stringify(state.tasks))
+      }
+      const loadState = () => {
+        if (
+            localStorage.hasOwnProperty('counter') &&
+            localStorage.hasOwnProperty('tasks')) {
+          return {
+            counter: localStorage.getItem('counter'),
+            tasks: JSON.parse(localStorage.getItem('tasks')),
+          }
+        } else {
+          return {
+            counter: 8,
+            tasks: {
+              'root': {
+                children: ['x0', 'x4', 'x5', 'x6', 'x7'],
+              },
+              'x0': {
+                id: 'x0',
+                text: "Buy Milk",
+                children: ['x1', 'x2', 'x3'],
+                parent: 'root',
+              },
+              'x1': {
+                id: 'x1',
+                text: "Find the dairy aisle",
+                children: [],
+                parent: 'x0',
+              },
+              'x2': {
+                id: 'x2',
+                text: "Find a whole milk that's also organic",
+                children: [],
+                parent: 'x0',
+              },
+              'x3': {
+                id: 'x3',
+                text: "Put it in the cart",
+                children: [],
+                parent: 'x0',
+              },
+              'x4': {
+                id: 'x4',
+                text: "Buy Orange Juice",
+                children: [],
+                parent: 'root',
+              },
+              'x5': {
+                id: 'x5',
+                text: "Buy Yogurt",
+                children: [],
+                parent: 'root',
+              },
+              'x6': {
+                id: 'x6',
+                text: "Buy Bread",
+                children: [],
+                parent: 'root',
+              },
+              'x7': {
+                id: 'x7',
+                text: "Buy Anchovies",
+                children: [],
+                parent: 'root',
+              },
+            }
+          }
+        }
+      }
+      const INITIAL_STATE = loadState()
+      let counter = INITIAL_STATE.counter
       const TaskManagementContext = React.createContext(null)
       class NewTodoInput extends React.Component {
         static contextType = TaskManagementContext
@@ -251,59 +323,7 @@
           super(props)
           this.state = {
             activeParent: 'root',
-            tasks: {
-              'root': {
-                children: ['x0', 'x4', 'x5', 'x6', 'x7'],
-              },
-              'x0': {
-                id: 'x0',
-                text: "Buy Milk",
-                children: ['x1', 'x2', 'x3'],
-                parent: 'root',
-              },
-              'x1': {
-                id: 'x1',
-                text: "Find the dairy aisle",
-                children: [],
-                parent: 'x0',
-              },
-              'x2': {
-                id: 'x2',
-                text: "Find a whole milk that's also organic",
-                children: [],
-                parent: 'x0',
-              },
-              'x3': {
-                id: 'x3',
-                text: "Put it in the cart",
-                children: [],
-                parent: 'x0',
-              },
-              'x4': {
-                id: 'x4',
-                text: "Buy Orange Juice",
-                children: [],
-                parent: 'root',
-              },
-              'x5': {
-                id: 'x5',
-                text: "Buy Yogurt",
-                children: [],
-                parent: 'root',
-              },
-              'x6': {
-                id: 'x6',
-                text: "Buy Bread",
-                children: [],
-                parent: 'root',
-              },
-              'x7': {
-                id: 'x7',
-                text: "Buy Anchovies",
-                children: [],
-                parent: 'root',
-              },
-            },
+            tasks: INITIAL_STATE.tasks,
           }
         }
         removeTask = (id) => {
@@ -335,7 +355,7 @@
               }
             )
             return { tasks: newTasks }
-          })
+          }, () => saveState(this.state))
         }
         /**
          * Refers to the parent
@@ -375,7 +395,7 @@
                 },
               )
             }
-          })
+          }, () => saveState(this.state))
         }
         getTask = (id) => {
           return this.state.tasks[id]
