@@ -270,8 +270,8 @@
           return (
             <div className="todo-item-block" draggable="true"
                 onDragStart={(event) => {
-                  if (this.context.getActiveTask() === this.task.id) {
-                    this.context.resetActiveTask()
+                  this.context.resetActiveTask()
+                  if (event.currentTarget.querySelector('.new-todo-item') !== null) {
                     event.currentTarget
                         .querySelector('.new-todo-item').style.display = 'none'
                   }
