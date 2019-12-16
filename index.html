@@ -151,6 +151,10 @@
       .subList {
         padding-left: 40px;
       }
+      .drop-zone {
+        background: #eee;
+        width: 100%;
+      }
     </style>
   </head>
   <body>
@@ -173,6 +177,7 @@
             counter: 8,
             tasks: {
               'root': {
+                id: 'root',
                 children: ['x0', 'x4', 'x5', 'x6', 'x7'],
               },
               'x0': {
@@ -257,17 +262,81 @@
         static contextType = TaskManagementContext
         constructor (props) {
           super(props)
+          this.count = 0
         }
         render () {
           this.task = this.context.getTask(this.props.task)
+          const showDragZone = this.context.getDragDestination().taskId === this.task.id
           return (
-            <div>
-              <div className="todo-item-container">
+            <div className="todo-item-block" draggable="true"
+                onDragStart={(event) => {
+                  if (this.context.getActiveTask() === this.task.id) {
+                    this.context.resetActiveTask()
+                    event.currentTarget
+                        .querySelector('.new-todo-item').style.display = 'none'
+                  }
+                  this.context.setDraggedTask(
+                    this.task.id,
+                    event.currentTarget.offsetHeight,
+                  )
+                  event.dataTransfer.setDragImage(event.currentTarget, 0, 0)
+                  setTimeout((currentTarget) => {
+                    currentTarget.style.display = 'none'
+                  }, 0, event.currentTarget)
+                  event.stopPropagation()
+                }}
+                onDragEnd={(event) => {
+                  event.currentTarget.style.display = 'block'
+                  this.context.dropTask()
+                }}>
+              {
+                showDragZone && this.context.getDragDestination().position === 'top'
+                ? <div className="drop-zone" style={{height: `${this.context.getDraggedTask().offsetHeight}px`}}
+                    onDrop={() => {}}
+                    onDragOver={() => {
+                      event.stopPropagation();
+                      event.preventDefault();
+                    }}
+                    ></div>
+                : null
+              }
+              <div className="todo-item-container"
+                onDragEnter={(event) => {
+                  this.count++
+                  if (this.context.getDraggedTask().taskId !== this.task.id) {
+                    this.context.setDragDestination(this.task.id, 'top')
+                  }
+                }}
+                onDragLeave={(event) => {
+                  this.count--
+                  if (this.count === 0) {
+                    if (this.context.getDraggedTask().taskId === this.task.id) {
+                      this.context.setDraggedTask()
+                    }
+                  }
+                }}
+                onDragOver={(event) => {
+                  const rect = event.target.getBoundingClientRect()
+                  const relativePosition = {
+                    x: event.clientX - rect.left,
+                    y: event.clientY - rect.top,
+                  }
+                  if (relativePosition.y >= 0 && relativePosition.y < (rect.height / 2)) {
+                    this.context.setDragDestination(this.task.id, 'top')
+                  } else if (relativePosition.y >= (rect.height / 2) && relativePosition.y <= rect.height) {
+                    this.context.setDragDestination(this.task.id, 'bottom')
+                  } else if (relativePosition.y > rect.height) {
+                  }
+                  event.stopPropagation();
+                  event.preventDefault();
+                }}
+                onDrop = {()=>{}}
+              >
                 <div className="todo-item" onClick={() => this.context.removeTask(this.task.id)}>
                   <div className="todo-bullet-container">
                     <div className="todo-bullet"></div>
                   </div>
-                  <div className="todo-text">&nbsp;{this.task.text}&nbsp;</div>
+                  <div className="todo-text">&nbsp;{this.task.text} ({this.task.id})&nbsp;</div>
                 </div>
                 <div className="todo-controls">
                   <div className="todo-add-subitem"
@@ -290,6 +359,17 @@
                     : null
                 }
               </div>
+              {
+                showDragZone && this.context.getDragDestination().position === 'bottom'
+                ? <div className="drop-zone" style={{height: `${this.context.getDraggedTask().offsetHeight}px`}}
+                    onDrop={() => {}}
+                    onDragOver={() => {
+                      event.stopPropagation();
+                      event.preventDefault();
+                    }}
+                    ></div>
+                : null
+              }
             </div>
           )
         }
@@ -324,6 +404,8 @@
           this.state = {
             activeParent: 'root',
             tasks: INITIAL_STATE.tasks,
+            draggedTask: {},
+            dragDestination: {},
           }
         }
         removeTask = (id) => {
@@ -400,16 +482,113 @@
         getTask = (id) => {
           return this.state.tasks[id]
         }
+        setDraggedTask = (taskId, offsetHeight) => {
+          this.setState({ draggedTask: { taskId, offsetHeight }})
+        }
+        getDraggedTask = () => {
+          return this.state.draggedTask
+        }
+        setDragDestination = (taskId, position) => {
+          this.setState({dragDestination: {taskId, position}})
+        }
+        getDragDestination = () => {
+          return this.state.dragDestination
+        }
+        static dropTaskHelper_generateOldParent (tasks, taskId) {
+          const parent = tasks[tasks[taskId].parent]
+          return Object.assign(
+            {},
+            parent,
+            {
+              children: parent.children.filter(task => task !== taskId)
+            }
+          )
+        }
+        static dropTaskHelper_generateNewParent (tasks, taskId, destinationId, position) {
+          const parent = tasks[tasks[destinationId].parent]
+          return Object.assign(
+            {},
+            parent,
+            {
+              children: parent.children.reduce((children, child) => {
+                if (child === destinationId) {
+                  return position === 'top'
+                      ? [...children, taskId, child]
+                      : [...children, child, taskId]
+                } else if (child === taskId) {
+                  return children
+                } else {
+                  return [...children, child]
+                }
+              }, [])
+            }
+          )
+        }
+        dropTask = () => {
+          if (this.state.dragDestination.taskId === undefined) {
+            this.setState({
+              draggedTask: {},
+              dragDestination: {},
+            })
+            return
+          }
+          // change parent tasks
+          const oldParent = App.dropTaskHelper_generateOldParent(
+            this.state.tasks,
+            this.state.draggedTask.taskId,
+          )
+          const newParent = App.dropTaskHelper_generateNewParent(
+            this.state.tasks,
+            this.state.draggedTask.taskId,
+            this.state.dragDestination.taskId,
+            this.state.dragDestination.position,
+          )
+
+          // change dragged task
+          const draggedTask = Object.assign(
+            {},
+            this.state.tasks[this.state.draggedTask.taskId],
+            { parent: newParent.id }
+          )
+
+          // update state
+          this.setState({
+            draggedTask: {},
+            dragDestination: {},
+            tasks: Object.assign(
+              {},
+              this.state.tasks,
+              {
+                [oldParent.id]: oldParent,
+              },
+              {
+                [this.state.draggedTask.taskId]: draggedTask,
+                [newParent.id]: newParent,
+              }
+            ),
+          },  () => saveState(this.state))
+        }
         render () {
+          const taskManagementSuite = {
+            // basic task management
+            createTask: this.createTask,
+            getTask: this.getTask,
+            removeTask: this.removeTask,
+
+            // new task location management
+            getActiveTask: this.getActiveTask,
+            setActiveTask: this.setActiveTask,
+            resetActiveTask: this.resetActiveTask,
+
+            // drag and drop management
+            dropTask: this.dropTask,
+            setDraggedTask: this.setDraggedTask,
+            getDraggedTask: this.getDraggedTask,
+            setDragDestination: this.setDragDestination,
+            getDragDestination: this.getDragDestination,
+          }
           return (
-            <TaskManagementContext.Provider value={{
-              createTask: this.createTask,
-              getTask: this.getTask,
-              getActiveTask: this.getActiveTask,
-              removeTask: this.removeTask,
-              resetActiveTask: this.resetActiveTask,
-              setActiveTask: this.setActiveTask,
-            }}>
+            <TaskManagementContext.Provider value={taskManagementSuite}>
               <div className="app">
                 <TopLevelList />
               </div>
