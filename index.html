@@ -100,15 +100,20 @@
         height: 10px;
         border-radius: 10%;
       }
-      .todo-item:hover .todo-bullet {
+      .todo-bullet-container:hover .todo-bullet {
         background: black;
         transform: rotate(180deg);
         animation: spin 0.5s linear;
       }
       .todo-text {
+        font-size: 14px;
+        font-weight: 700;
         text-decoration: none;
+        outline: none;
+        border: 0px;
+        padding: 0 1em 0 1em;
       }
-      .todo-item:hover .todo-text {
+      .todo-bullet:hover .todo-text {
         text-decoration: line-through;
         animation: crossout 0.4s linear;
       }
@@ -332,11 +337,16 @@
                 }}
                 onDrop = {()=>{}}
               >
-                <div className="todo-item" onClick={() => this.context.removeTask(this.task.id)}>
-                  <div className="todo-bullet-container">
+                <div className="todo-item">
+                  <div className="todo-bullet-container" onClick={() => this.context.removeTask(this.task.id)}>
                     <div className="todo-bullet"></div>
                   </div>
-                  <div className="todo-text">&nbsp;{this.task.text} ({this.task.id})&nbsp;</div>
+                  <input
+                    className="todo-text"
+                    defaultValue={this.task.text}
+                    onKeyDown={() => this.context.saveTask(this.task.id, event)}
+                    onBlur={() => this.context.editTask(this.task.id, event)}
+                  />
                 </div>
                 <div className="todo-controls">
                   <div className="todo-add-subitem"
@@ -398,6 +408,12 @@
         }
       }
 
+      // Features:
+      // * Double clicking into a task will edit it
+      // * Completed tasks are not deleted, but moved to a "completed" list
+      //    - if task has children, move all those children to the comleted list as well
+      // Clicking outside of the list will autofocus on 'root' to add new tasks
+
       class App extends React.Component {
         constructor (props) {
           super(props)
@@ -438,6 +454,23 @@
             )
             return { tasks: newTasks }
           }, () => saveState(this.state))
+        }
+        editTask = (id, userInput) => {
+          this.setState((state) => {
+            const newTasks = Object.assign({}, state.tasks)
+            newTasks[id].text = userInput.target.value
+            return {tasks: newTasks}
+          }, () => saveState(this.state))
+        }
+        saveTask = (id, userInput) => {
+          if (userInput.key === 'Enter') {
+            this.setState((state) => {
+            const newTasks = Object.assign({}, state.tasks)
+            newTasks[id].text = userInput.target.value
+            return {tasks: newTasks}
+            }, () => saveState(this.state))
+            userInput.target.blur()
+          }
         }
         /**
          * Refers to the parent
@@ -574,6 +607,8 @@
             createTask: this.createTask,
             getTask: this.getTask,
             removeTask: this.removeTask,
+            editTask: this.editTask,
+            saveTask: this.saveTask,
 
             // new task location management
             getActiveTask: this.getActiveTask,
