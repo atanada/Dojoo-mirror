@@ -16,7 +16,8 @@
         width: 30%;
         margin: 10vh auto;
         display: flex;
-        height: 80vh;
+        /* maintain margins when list is long */
+        /* height: 80vh; */
       }
       #root {
         width: 100%;
@@ -65,6 +66,7 @@
       }
       .new-todo-text {
         outline: none;
+        border: none;
         margin-left: 38px;
         cursor: text;
         width: 100%;
@@ -72,6 +74,8 @@
         margin-bottom: -10px;
         padding-top: 15px;
         padding-bottom: 10px;
+        font-size: 14px;
+        font-weight: 700;
         color: #666;
       }
       .new-todo-text:empty::after {
@@ -80,6 +84,7 @@
       }
       .todo-item {
         display: flex;
+        flex: 1;
         align-items: center;
         cursor: pointer;
         user-select: none;
@@ -100,20 +105,24 @@
         height: 10px;
         border-radius: 10%;
       }
-      .todo-item:hover .todo-bullet {
+      .todo-bullet-container:hover .todo-bullet {
         background: black;
         transform: rotate(180deg);
         animation: spin 0.5s linear;
       }
       .todo-text {
-        text-decoration: none;
+        font-size: 14px;
+        font-weight: 700;
+        outline: none;
+        border: 0px;
+        padding: 0 1em 0 1em;
+        flex: 1;
       }
-      .todo-item:hover .todo-text {
+      .todo-bullet-container:hover ~ .todo-text {
         text-decoration: line-through;
         animation: crossout 0.4s linear;
       }
       .todo-controls {
-        flex: 1;
         display: flex;
         justify-content: flex-end;
       }
@@ -239,8 +248,8 @@
         static contextType = TaskManagementContext
         handleKeyPress = (event) => {
           if (event.key === 'Enter') {
-            this.context.createTask(event.currentTarget.innerText)
-            event.currentTarget.innerText = ''
+            this.context.createTask(event.currentTarget.value)
+            event.currentTarget.value = ''
             event.preventDefault()
           } else if (event.key === 'Escape') {
             this.context.resetActiveTask()
@@ -249,11 +258,12 @@
         render = () => {
           return (
             <div className="new-todo-item">
-              <span className="new-todo-text"
-                  contentEditable="true"
-                  autoFocus
-                  onKeyDown={this.handleKeyPress}>
-              </span>
+              <input className="new-todo-text"
+                placeholder="New task..."
+                autoFocus
+                maxLength='36'
+                onKeyDown={this.handleKeyPress}
+              />
             </div>
           )
         }
@@ -332,11 +342,17 @@
                 }}
                 onDrop = {()=>{}}
               >
-                <div className="todo-item" onClick={() => this.context.removeTask(this.task.id)}>
-                  <div className="todo-bullet-container">
+                <div className="todo-item">
+                  <div className="todo-bullet-container" onClick={() => this.context.removeTask(this.task.id)}>
                     <div className="todo-bullet"></div>
                   </div>
-                  <div className="todo-text">&nbsp;{this.task.text} ({this.task.id})&nbsp;</div>
+                  <input
+                    className="todo-text"
+                    defaultValue={this.task.text}
+                    maxLength='36'
+                    onKeyDown={() => this.context.editTask(this.task.id, event)}
+                    onBlur={() => this.context.saveTask(this.task.id, event)}
+                  />
                 </div>
                 <div className="todo-controls">
                   <div className="todo-add-subitem"
@@ -350,7 +366,6 @@
                 {this.task.children.map((taskId) => {
                   return <TodoItemComponent task={taskId} key={taskId}/>
                 })}
-
                 {
                   this.task.id === this.context.getActiveTask()
                     ? (
@@ -437,6 +452,23 @@
               }
             )
             return { tasks: newTasks }
+          }, () => saveState(this.state))
+        }
+        editTask = (id, userInput) => {
+          if (userInput.key === 'Enter') {
+            this.setState((state) => {
+              const newTasks = Object.assign({}, state.tasks)
+              newTasks[id].text = userInput.target.value
+              return {tasks: newTasks}
+            }, () => saveState(this.state))
+            userInput.target.blur()
+          }
+        }
+        saveTask = (id, userInput) => {
+          this.setState((state) => {
+            const newTasks = Object.assign({}, state.tasks)
+            newTasks[id].text = userInput.target.value
+            return {tasks: newTasks}
           }, () => saveState(this.state))
         }
         /**
@@ -574,6 +606,8 @@
             createTask: this.createTask,
             getTask: this.getTask,
             removeTask: this.removeTask,
+            editTask: this.editTask,
+            saveTask: this.saveTask,
 
             // new task location management
             getActiveTask: this.getActiveTask,
