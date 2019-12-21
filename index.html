@@ -355,10 +355,16 @@
                   />
                 </div>
                 <div className="todo-controls">
-                  <div className="todo-add-subitem"
-                      onClick={() => this.context.setActiveTask(this.task.id)}>
-                    +
-                  </div>
+                  {
+                    this.context.getTaskLevel(this.task.id) < 3
+                      ? (
+                        <div className="todo-add-subitem"
+                            onClick={() => this.context.setActiveTask(this.task.id)}>
+                          +
+                        </div>
+                      )
+                      : <div style={{color: 'rgba(0,0,0,0)'}}> + </div>
+                  }
                   <div className="todo-move-handle">⋮</div>
                 </div>
               </div>
@@ -470,6 +476,15 @@
             newTasks[id].text = userInput.target.value
             return {tasks: newTasks}
           }, () => saveState(this.state))
+        }
+        getTaskLevel = (id) => {
+          const thisTask = this.state.tasks[id]
+          if (thisTask.parent === 'root') {
+            return 1
+          } else if (this.state.tasks[thisTask.parent].parent === 'root') {
+            return 2
+          }
+          return 3
         }
         /**
          * Refers to the parent
@@ -608,6 +623,7 @@
             removeTask: this.removeTask,
             editTask: this.editTask,
             saveTask: this.saveTask,
+            getTaskLevel: this.getTaskLevel,
 
             // new task location management
             getActiveTask: this.getActiveTask,
