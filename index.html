@@ -240,7 +240,7 @@
       const INITIAL_STATE = loadState()
       let counter = INITIAL_STATE.counter
       const TaskManagementContext = React.createContext(null)
-      const taskCharacterLimit = 36
+      const TASK_CHARACTER_LIMIT = 36
       class NewTodoInput extends React.Component {
         static contextType = TaskManagementContext
         handleKeyPress = (event) => {
@@ -259,7 +259,7 @@
               <input className="new-todo-text editable-todo-text"
                 placeholder="New task..."
                 autoFocus
-                maxLength={taskCharacterLimit}
+                maxLength={TASK_CHARACTER_LIMIT}
                 onKeyDown={this.handleKeyPress}
               />
             </div>
@@ -347,9 +347,9 @@
                   <input
                     className="todo-text editable-todo-text"
                     defaultValue={this.task.text}
-                    maxLength={taskCharacterLimit}
-                    onKeyDown={() => this.context.onEditTask(event)}
-                    onBlur={() => this.context.saveTask(this.task.id, event)}
+                    maxLength={TASK_CHARACTER_LIMIT}
+                    onKeyDown={(event) => {this.context.onEditTask(event)}}
+                    onBlur={(event) => this.context.saveTask(this.task.id, event)}
                   />
                 </div>
                 <div className="todo-controls">
@@ -452,14 +452,15 @@
             return { tasks: newTasks }
           }, () => saveState(this.state))
         }
-        onEditTask = (userInput) => {
-          if (userInput.key === 'Enter') {
-            userInput.target.blur()
+        onEditTask = (event) => {
+          if (event.key === 'Enter') {
+            event.currentTarget.blur()
           }
         }
         saveTask = (id, userInput) => {
+          const editTaskEvent = userInput.currentTarget
           this.setState((state) => {
-            const newTasks = Object.assign({}, state.tasks[id], {text: userInput.target.value})
+            const newTasks = Object.assign({}, state.tasks[id], {text: editTaskEvent.value})
             const updateTasks = Object.assign({}, state.tasks, {[id]: newTasks})
             return {tasks: updateTasks}
           }, () => saveState(this.state))
