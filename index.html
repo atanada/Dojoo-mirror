@@ -16,8 +16,6 @@
         width: 30%;
         margin: 10vh auto;
         display: flex;
-        /* maintain margins when list is long */
-        /* height: 80vh; */
       }
       #root {
         width: 100%;
@@ -64,9 +62,13 @@
         display: flex;
         align-items: center;
       }
-      .new-todo-text {
+      .editable-todo-text {
+        font-size: 14px;
+        font-weight: 700;
         outline: none;
         border: none;
+      }
+      .new-todo-text {
         margin-left: 38px;
         cursor: text;
         width: 100%;
@@ -74,8 +76,6 @@
         margin-bottom: -10px;
         padding-top: 15px;
         padding-bottom: 10px;
-        font-size: 14px;
-        font-weight: 700;
         color: #666;
       }
       .new-todo-text:empty::after {
@@ -111,10 +111,6 @@
         animation: spin 0.5s linear;
       }
       .todo-text {
-        font-size: 14px;
-        font-weight: 700;
-        outline: none;
-        border: 0px;
         padding: 0 1em 0 1em;
         flex: 1;
       }
@@ -244,6 +240,7 @@
       const INITIAL_STATE = loadState()
       let counter = INITIAL_STATE.counter
       const TaskManagementContext = React.createContext(null)
+      const taskCharacterLimit = 36
       class NewTodoInput extends React.Component {
         static contextType = TaskManagementContext
         handleKeyPress = (event) => {
@@ -252,16 +249,17 @@
             event.currentTarget.value = ''
             event.preventDefault()
           } else if (event.key === 'Escape') {
+            event.currentTarget.value = ''
             this.context.resetActiveTask()
           }
         }
         render = () => {
           return (
             <div className="new-todo-item">
-              <input className="new-todo-text"
+              <input className="new-todo-text editable-todo-text"
                 placeholder="New task..."
                 autoFocus
-                maxLength='36'
+                maxLength={taskCharacterLimit}
                 onKeyDown={this.handleKeyPress}
               />
             </div>
@@ -347,10 +345,10 @@
                     <div className="todo-bullet"></div>
                   </div>
                   <input
-                    className="todo-text"
+                    className="todo-text editable-todo-text"
                     defaultValue={this.task.text}
-                    maxLength='36'
-                    onKeyDown={() => this.context.editTask(this.task.id, event)}
+                    maxLength={taskCharacterLimit}
+                    onKeyDown={() => this.context.onEditTask(event)}
                     onBlur={() => this.context.saveTask(this.task.id, event)}
                   />
                 </div>
@@ -454,21 +452,16 @@
             return { tasks: newTasks }
           }, () => saveState(this.state))
         }
-        editTask = (id, userInput) => {
+        onEditTask = (userInput) => {
           if (userInput.key === 'Enter') {
-            this.setState((state) => {
-              const newTasks = Object.assign({}, state.tasks)
-              newTasks[id].text = userInput.target.value
-              return {tasks: newTasks}
-            }, () => saveState(this.state))
             userInput.target.blur()
           }
         }
         saveTask = (id, userInput) => {
           this.setState((state) => {
-            const newTasks = Object.assign({}, state.tasks)
-            newTasks[id].text = userInput.target.value
-            return {tasks: newTasks}
+            const newTasks = Object.assign({}, state.tasks[id], {text: userInput.target.value})
+            const updateTasks = Object.assign({}, state.tasks, {[id]: newTasks})
+            return {tasks: updateTasks}
           }, () => saveState(this.state))
         }
         /**
@@ -606,7 +599,7 @@
             createTask: this.createTask,
             getTask: this.getTask,
             removeTask: this.removeTask,
-            editTask: this.editTask,
+            onEditTask: this.onEditTask,
             saveTask: this.saveTask,
 
             // new task location management
