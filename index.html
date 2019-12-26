@@ -279,13 +279,13 @@
           return (
             <div className="todo-item-block" draggable="true"
                 onDragStart={(event) => {
-                  this.context.resetActiveTask()
+                  this.context.resetActiveTask() // activeParent is 'root'
                   if (event.currentTarget.querySelector('.new-todo-item') !== null) {
                     event.currentTarget
                         .querySelector('.new-todo-item').style.display = 'none'
                   }
                   this.context.setDraggedTask(
-                    this.task.id,
+                    this.task.id, // this.props.task is what's being dragged - AT
                     event.currentTarget.offsetHeight,
                   )
                   event.dataTransfer.setDragImage(event.currentTarget, 0, 0)
@@ -330,10 +330,17 @@
                     x: event.clientX - rect.left,
                     y: event.clientY - rect.top,
                   }
-                  if (relativePosition.y >= 0 && relativePosition.y < (rect.height / 2)) {
+                  const isTop = relativePosition.y >= 0 && relativePosition.y < (rect.height / 2)
+                  const isBottom = relativePosition.y <= rect.height && relativePosition.y >= (rect.height / 2)
+                  const isLeft = relativePosition.x >= 0 && relativePosition.x < (rect.width / 2)
+                  const isRight = relativePosition.x <= rect.width && relativePosition.x >= (rect.width / 2)
+
+                  if (isTop) {
                     this.context.setDragDestination(this.task.id, 'top')
-                  } else if (relativePosition.y >= (rect.height / 2) && relativePosition.y <= rect.height) {
+                  } else if (isBottom && isLeft) {
                     this.context.setDragDestination(this.task.id, 'bottom')
+                  } else if (isBottom && isRight) {
+                    this.context.setDragDestination(this.task.id, 'bottomRight')
                   } else if (relativePosition.y > rect.height) {
                   }
                   event.stopPropagation();
@@ -381,6 +388,7 @@
               </div>
               {
                 showDragZone && this.context.getDragDestination().position === 'bottom'
+                || showDragZone && this.context.getDragDestination().position === 'bottomRight'
                 ? <div className="drop-zone" style={{height: `${this.context.getDraggedTask().offsetHeight}px`}}
                     onDrop={() => {}}
                     onDragOver={() => {
@@ -523,11 +531,11 @@
         getTask = (id) => {
           return this.state.tasks[id]
         }
-        setDraggedTask = (taskId, offsetHeight) => {
+        setDraggedTask = (taskId, offsetHeight) => { // this.state.task.id is the draggedTask - AT
           this.setState({ draggedTask: { taskId, offsetHeight }})
         }
         getDraggedTask = () => {
-          return this.state.draggedTask
+          return this.state.draggedTask // will return this.state.task.id
         }
         setDragDestination = (taskId, position) => {
           this.setState({dragDestination: {taskId, position}})
@@ -547,23 +555,33 @@
         }
         static dropTaskHelper_generateNewParent (tasks, taskId, destinationId, position) {
           const parent = tasks[tasks[destinationId].parent]
-          return Object.assign(
-            {},
-            parent,
-            {
-              children: parent.children.reduce((children, child) => {
-                if (child === destinationId) {
-                  return position === 'top'
-                      ? [...children, taskId, child]
-                      : [...children, child, taskId]
-                } else if (child === taskId) {
-                  return children
-                } else {
-                  return [...children, child]
+          const nestedParent = tasks[destinationId]
+          console.log("if nesting worked  ", nestedParent, " - ", nestedParent.children.concat(taskId))
+          return position === 'bottomRight'
+            ? Object.assign(
+                {},
+                nestedParent,
+                {
+                  children: nestedParent.children.concat(taskId)
                 }
-              }, [])
-            }
-          )
+              )
+            : Object.assign(
+                {},
+                parent,
+                {
+                  children: parent.children.reduce((children, child) => {
+                    if (child === destinationId) {
+                      return position === 'top'
+                        ? [...children, taskId, child]
+                        : [...children, child, taskId]
+                    } else if (child === taskId) {
+                      return children
+                    } else {
+                      return [...children, child]
+                    }
+                  }, [])
+                }
+              )
         }
         dropTask = () => {
           if (this.state.dragDestination.taskId === undefined) {
