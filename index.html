@@ -279,13 +279,13 @@
           return (
             <div className="todo-item-block" draggable="true"
                 onDragStart={(event) => {
-                  this.context.resetActiveTask() // activeParent is 'root'
+                  this.context.resetActiveTask()
                   if (event.currentTarget.querySelector('.new-todo-item') !== null) {
                     event.currentTarget
                         .querySelector('.new-todo-item').style.display = 'none'
                   }
                   this.context.setDraggedTask(
-                    this.task.id, // this.props.task is what's being dragged - AT
+                    this.task.id,
                     event.currentTarget.offsetHeight,
                   )
                   event.dataTransfer.setDragImage(event.currentTarget, 0, 0)
@@ -531,11 +531,11 @@
         getTask = (id) => {
           return this.state.tasks[id]
         }
-        setDraggedTask = (taskId, offsetHeight) => { // this.state.task.id is the draggedTask - AT
+        setDraggedTask = (taskId, offsetHeight) => {
           this.setState({ draggedTask: { taskId, offsetHeight }})
         }
         getDraggedTask = () => {
-          return this.state.draggedTask // will return this.state.task.id
+          return this.state.draggedTask
         }
         setDragDestination = (taskId, position) => {
           this.setState({dragDestination: {taskId, position}})
