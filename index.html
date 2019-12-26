@@ -76,6 +76,8 @@
         margin-bottom: -10px;
         padding-top: 15px;
         padding-bottom: 10px;
+        font-size: 14px;
+        font-weight: 700;
         color: #666;
       }
       .new-todo-text:empty::after {
@@ -241,6 +243,7 @@
       let counter = INITIAL_STATE.counter
       const TaskManagementContext = React.createContext(null)
       const TASK_CHARACTER_LIMIT = 36
+      const BASE_TASK_LEVEL = 1
       class NewTodoInput extends React.Component {
         static contextType = TaskManagementContext
         handleKeyPress = (event) => {
@@ -353,10 +356,16 @@
                   />
                 </div>
                 <div className="todo-controls">
-                  <div className="todo-add-subitem"
-                      onClick={() => this.context.setActiveTask(this.task.id)}>
-                    +
-                  </div>
+                  {
+                    this.context.getTaskLevel(this.task.id, BASE_TASK_LEVEL) < 3
+                      ? (
+                        <div className="todo-add-subitem"
+                            onClick={() => this.context.setActiveTask(this.task.id)}>
+                          +
+                        </div>
+                      )
+                      : null
+                  }
                   <div className="todo-move-handle">⋮</div>
                 </div>
               </div>
@@ -464,6 +473,14 @@
             const updateTasks = Object.assign({}, state.tasks, {[id]: newTasks})
             return {tasks: updateTasks}
           }, () => saveState(this.state))
+        }
+        getTaskLevel = (id, level) => {
+          if (this.state.tasks[id].parent === 'root') {
+            return level
+          } else {
+            level += 1
+            return this.getTaskLevel(this.state.tasks[id].parent, level)
+          }
         }
         /**
          * Refers to the parent
@@ -602,6 +619,7 @@
             removeTask: this.removeTask,
             onEditTask: this.onEditTask,
             saveTask: this.saveTask,
+            getTaskLevel: this.getTaskLevel,
 
             // new task location management
             getActiveTask: this.getActiveTask,
