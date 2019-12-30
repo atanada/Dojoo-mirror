@@ -13,9 +13,9 @@
         font-family: monospace;
       }
       body {
-        width: 30%;
         margin: 10vh auto;
         display: flex;
+        width: 500px;
       }
       #root {
         width: 100%;
@@ -267,6 +267,7 @@
           )
         }
       }
+
       class TodoItemComponent extends React.Component {
         static contextType = TaskManagementContext
         constructor (props) {
@@ -275,46 +276,44 @@
         }
         render () {
           this.task = this.context.getTask(this.props.task)
-          const showDragZone = this.context.getDragDestination().taskId === this.task.id
-          return (
-            <div className="todo-item-block" draggable="true"
-                onDragStart={(event) => {
-                  this.context.resetActiveTask()
-                  if (event.currentTarget.querySelector('.new-todo-item') !== null) {
-                    event.currentTarget
-                        .querySelector('.new-todo-item').style.display = 'none'
-                  }
-                  this.context.setDraggedTask(
-                    this.task.id,
-                    event.currentTarget.offsetHeight,
-                  )
-                  event.dataTransfer.setDragImage(event.currentTarget, 0, 0)
-                  setTimeout((currentTarget) => {
-                    currentTarget.style.display = 'none'
-                  }, 0, event.currentTarget)
-                  event.stopPropagation()
+          const showDropZone =
+              this.context.getDragDestination().taskId === this.task.id
+
+          const setDragDestination = (event) => {
+            const rect = event.target.getBoundingClientRect()
+            const relativePosition = {
+              x: event.clientX - rect.left,
+              y: event.clientY - rect.top,
+            }
+
+            if (
+              relativePosition.y >= 0
+              && relativePosition.y < (rect.height / 2)
+            ) {
+              this.context.setDragDestination(this.task.id, 'top')
+            } else if (
+              relativePosition.y >= (rect.height / 2)
+              && relativePosition.y <= rect.height
+            ) {
+              this.context.setDragDestination(this.task.id, 'bottom')
+            }
+          }
+
+
+          const dropZone = (
+            <div className="drop-zone"
+                style={{
+                  height: `${this.context.getDraggedTask().offsetHeight}px`,
                 }}
-                onDragEnd={(event) => {
-                  event.currentTarget.style.display = 'block'
-                  this.context.dropTask()
-                }}>
-              {
-                showDragZone && this.context.getDragDestination().position === 'top'
-                ? <div className="drop-zone" style={{height: `${this.context.getDraggedTask().offsetHeight}px`}}
-                    onDrop={() => {}}
-                    onDragOver={() => {
-                      event.stopPropagation();
-                      event.preventDefault();
-                    }}
-                    ></div>
-                : null
-              }
+                key='dropzone'>
+            </div>
+          )
+          const taskContent = (
+            <React.Fragment key="task-content">
               <div className="todo-item-container"
                 onDragEnter={(event) => {
                   this.count++
-                  if (this.context.getDraggedTask().taskId !== this.task.id) {
-                    this.context.setDragDestination(this.task.id, 'top')
-                  }
+                  setDragDestination(event)
                 }}
                 onDragLeave={(event) => {
                   this.count--
@@ -325,30 +324,15 @@
                   }
                 }}
                 onDragOver={(event) => {
-                  const rect = event.target.getBoundingClientRect()
-                  const relativePosition = {
-                    x: event.clientX - rect.left,
-                    y: event.clientY - rect.top,
-                  }
-                  const isTop = relativePosition.y >= 0 && relativePosition.y < (rect.height / 2)
-                  const isBottom = relativePosition.y <= rect.height && relativePosition.y >= (rect.height / 2)
-                  const isLeft = relativePosition.x >= 0 && relativePosition.x < (rect.width / 2)
-                  const isRight = relativePosition.x <= rect.width && relativePosition.x >= (rect.width / 2)
-                  if (isTop) {
-                    this.context.setDragDestination(this.task.id, 'top')
-                  } else if (isBottom && isLeft) {
-                    this.context.setDragDestination(this.task.id, 'bottom')
-                  } else if (isBottom && isRight) {
-                    this.context.setDragDestination(this.task.id, 'bottomRight')
-                  } else if (relativePosition.y > rect.height) {
-                  }
-                  event.stopPropagation();
-                  event.preventDefault();
+                  setDragDestination(event)
+                  event.stopPropagation()
+                  event.preventDefault()
                 }}
-                onDrop = {()=>{}}
+                onDrop = {() => {}}
               >
                 <div className="todo-item">
-                  <div className="todo-bullet-container" onClick={() => this.context.removeTask(this.task.id)}>
+                  <div className="todo-bullet-container"
+                      onClick={() => this.context.removeTask(this.task.id)}>
                     <div className="todo-bullet"></div>
                   </div>
                   <input
@@ -374,33 +358,14 @@
                 </div>
               </div>
               <div className="subList">
-                {
-                  showDragZone && this.context.getDragDestination().position === 'bottomRight'
-                  ? <div className="drop-zone" style={{height: `${this.context.getDraggedTask().offsetHeight}px`}}
-                      onDrop={() => {}}
-                      onDragOver={() => {
-                        const rect = event.target.getBoundingClientRect()
-                        const relativePosition = {
-                          x: event.clientX - rect.left,
-                          y: event.clientY - rect.top,
-                        }
-                        const isLeft = relativePosition.x >= 0 && relativePosition.x < (rect.width / 2)
-                        const isRight = relativePosition.x <= rect.width && relativePosition.x >= (rect.width / 2)
-                        if (isLeft) {
-                          this.context.setDragDestination(this.context.getDragDestination().taskId, 'bottom')
-                        } else if (isRight) {
-                          this.context.setDragDestination(this.context.getDragDestination().taskId, 'bottomRight')
-                        }
-                        event.stopPropagation();
-                        event.preventDefault();
-                      }}
-                    ></div>
-                  : null
-                }
-
                 {this.task.children.map((taskId) => {
                   return <TodoItemComponent task={taskId} key={taskId}/>
                 })}
+                {
+                  showDropZone && this.context.getDragDestination().position === 'child'
+                      ? dropZone
+                      : null
+                }
                 {
                   this.task.id === this.context.getActiveTask()
                     ? (
@@ -409,29 +374,75 @@
                     : null
                 }
               </div>
-              {
-                showDragZone && this.context.getDragDestination().position === 'bottom'
-                ? <div className="drop-zone" style={{height: `${this.context.getDraggedTask().offsetHeight}px`}}
-                    onDrop={() => {}}
-                    onDragOver={() => {
-                      const rect = event.target.getBoundingClientRect()
-                      const relativePosition = {
-                        x: event.clientX - rect.left,
-                        y: event.clientY - rect.top,
-                      }
-                      const isLeft = relativePosition.x >= 0 && relativePosition.x < (rect.width / 2)
-                      const isRight = relativePosition.x <= rect.width && relativePosition.x >= (rect.width / 2)
-                      if (isLeft) {
-                        this.context.setDragDestination(this.context.getDragDestination().taskId, 'bottom')
-                      } else if (isRight) {
-                        this.context.setDragDestination(this.context.getDragDestination().taskId, 'bottomRight')
-                      }
-                      event.stopPropagation();
-                      event.preventDefault();
-                    }}
-                  ></div>
-                : null
-              }
+            </React.Fragment>
+          )
+
+          let visibleElements = [taskContent]
+          if (showDropZone) {
+            if (this.context.getDragDestination().position === 'top') {
+              visibleElements.unshift(dropZone)
+            } else if (this.context.getDragDestination().position === 'bottom') {
+              visibleElements.push(dropZone)
+            }
+          }
+
+          let leftMostPosition = null
+          let rightMostPosition = null
+          const cursorX = (event) => event.clientX - event.target.getBoundingClientRect().left
+
+          const draggedTask = this.context.getDragDestination().taskId
+          return (
+            <div className="todo-item-block" draggable="true"
+              onDragStart={(event) => {
+                this.context.resetActiveTask()
+                if (event.currentTarget.querySelector('.new-todo-item') !== null) {
+                  event.currentTarget
+                      .querySelector('.new-todo-item').style.display = 'none'
+                }
+                this.context.setDraggedTask(
+                  this.task.id,
+                  event.currentTarget.offsetHeight,
+                )
+                event.dataTransfer.setDragImage(event.currentTarget, 0, 0)
+                setTimeout((currentTarget) => {
+                  currentTarget.style.display = 'none'
+                }, 0, event.currentTarget)
+                event.stopPropagation()
+              }}
+              onDragEnd={(event) => {
+                event.currentTarget.style.display = 'block'
+                this.context.dropTask()
+              }}
+              onDrop={() => {}}
+              onDragEnter={(event) => {
+                leftMostPosition = rightMostPosition = cursorX(event)
+              }}
+              onDragLeave={(event) => {
+                leftMostPosition = rightMostPosition = null
+                if (cursorX(event) < 0) {
+                  this.context.setDragDestination(draggedTask, 'aunt')
+                }
+              }}
+              onDragOver={(event) => {
+                if (cursorX(event) < leftMostPosition) {
+                  leftMostPosition = cursorX(event)
+                } else if (cursorX(event) > leftMostPosition + 80) {
+                  if (this.context.getDragDestination().position === 'bottom') {
+                    this.context.setDragDestination(draggedTask, 'child')
+                  }
+                }
+                if (cursorX(event) > rightMostPosition) {
+                  rightMostPosition = cursorX(event)
+                } else if (cursorX(event) < rightMostPosition - 80) {
+                  if (this.context.getDragDestination().position === 'child') {
+                    this.context.setDragDestination(draggedTask, 'bottom')
+                  }
+                }
+                event.stopPropagation();
+                event.preventDefault();
+              }}
+            >
+              { visibleElements }
             </div>
           )
         }
@@ -571,9 +582,56 @@
         getDraggedTask = () => {
           return this.state.draggedTask
         }
-        setDragDestination = (taskId, position) => {
-          this.setState({dragDestination: {taskId, position}})
+
+        setDragDestination = (destinationId, position) => {
+          /**
+           * If destination position is top and destination task has a
+           * lower-indexed sibling, then make the position bottom and
+           * destination task the closest lower-indexed sibling.
+           */
+          const draggedTask = this.getDraggedTask().taskId
+          if (position === 'top') {
+            // if the destination task is the first task, don't do anything,
+            // otherwise, swap destination tasks
+            const parentTask = this.getTask(this.getTask(destinationId).parent)
+            const destinationIndex = parentTask.children.indexOf(destinationId)
+            let topTask = null
+            for (let i = 0; i < destinationIndex; i++) {
+              if (parentTask.children[i] !== destinationId
+                  && parentTask.children[i] !== draggedTask) {
+                topTask = parentTask.children[i]
+              }
+            }
+            if (topTask !== null) {
+              destinationId = topTask
+              position = 'bottom'
+            }
+          }
+
+          if (position === 'child') {
+            // if the destination task already has children, convert to bottom
+            // of last child
+            const destinationChildren = this.getTask(destinationId).children
+            const relevantChildren =
+                destinationChildren.filter(id => id !== draggedTask)
+
+            if (relevantChildren.length > 0) {
+              destinationId = destinationChildren[relevantChildren.length - 1]
+              position = 'bottom'
+            }
+          }
+
+          if (position === 'aunt') {
+            // we take the parent as the destination (only if parent is not
+            // root), position is bottom
+            if (this.getTask(destinationId).parent !== 'root') {
+              destinationId = this.getTask(destinationId).parent
+              position = 'bottom'
+            }
+          }
+          this.setState({dragDestination: {taskId: destinationId, position}})
         }
+
         getDragDestination = () => {
           return this.state.dragDestination
         }
@@ -587,26 +645,34 @@
             }
           )
         }
-        static dropTaskHelper_generateNewParent (tasks, taskId, destinationId, position) {
-          const parent = tasks[tasks[destinationId].parent]
-          const destinationTask = tasks[destinationId]
-          return position === 'bottomRight'
-            ? Object.assign(
+
+        /**
+         * Generate the modified version of the destination parent.
+         */
+        static dropTaskHelper_generateNewParent (
+          tasks, taskId, destinationId, position
+        ) {
+
+          if (position === 'child') {
+            return Object.assign(
               {},
-              destinationTask,
+              tasks[destinationId],
               {
-                children: destinationTask.children.concat(taskId)
+                children: tasks[destinationId].children
+                    .filter(id => id !== taskId).concat(taskId)
               }
             )
-            : Object.assign(
+          } else {
+            const parent = tasks[tasks[destinationId].parent]
+            return Object.assign(
               {},
               parent,
               {
                 children: parent.children.reduce((children, child) => {
                   if (child === destinationId) {
                     return position === 'top'
-                      ? [...children, taskId, child]
-                      : [...children, child, taskId]
+                        ? [...children, taskId, child]
+                        : [...children, child, taskId]
                   } else if (child === taskId) {
                     return children
                   } else {
@@ -615,6 +681,7 @@
                 }, [])
               }
             )
+          }
         }
         dropTask = () => {
           if (this.state.dragDestination.taskId === undefined) {
